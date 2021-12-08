@@ -6,7 +6,7 @@ window = Tk()
 window.title("PASSWRLD")
 
 #Function to display Login Screen
-def loginScreen():
+def displayLoginScreen():
     window.geometry("300x200")
 
     lbl1 = Label(window,text="PASSWRLD")
@@ -28,7 +28,7 @@ def loginScreen():
         password = "test"
 
         if password==txt.get():
-            print("Correct Answer!")
+            displayPasswordVault()
         else:
             lbl3.config(text="Incorrect Password!")
 
@@ -36,7 +36,14 @@ def loginScreen():
     btn.pack(pady=10)
 
 #Function to display password vault
+def displayPasswordVault():
+    for widget in window.winfo_children():
+        widget.destroy()
+    window.geometry("600x400")
 
+    lbl1 = Label(window, text="Password Vault")
+    lbl1.config(anchor=CENTER)
+    lbl1.pack()
 
-loginScreen()
+displayLoginScreen()
 window.mainloop()
