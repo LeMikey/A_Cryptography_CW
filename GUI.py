@@ -25,7 +25,7 @@ def loginScreen():
 
 
 
-    btn = Button(window, text="Submit",command=checkPassword())
+    btn = Button(window, text="Submit",command=checkPassword)
     btn.pack(pady=10)
 
 loginScreen()
