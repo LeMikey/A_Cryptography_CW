@@ -45,7 +45,6 @@ def displaySignUpScreen():
 
     txt2 = Entry(window, width=20, show="*")
     txt2.pack()
-    txt2.focus()
 
     lbl3 = Label(window)
     lbl3.pack()
