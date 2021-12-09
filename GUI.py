@@ -1,13 +1,34 @@
 import sqlite3,hashlib
 from tkinter import *
 
+# Initiate database
+with sqlite3.connect("PASSWRLD.db") as db:
+    cursor = db.cursor()
+
+# Creates the table to store the master password
+cursor.execute("""
+CREATE TABLE IF NOT EXISTS MasterPW(
+id INTEGER PRIMARY KEY,
+pw TEXT NOT NULL
+) 
+""")
+
+# Initiate Window
 window = Tk()
 
 window.title("PASSWRLD")
 
-# Function to display the screen to set master password
-def displayFirstScreen():
-    window.geometry("300x100")
+# Function to implement sha512 hashing algorithm to hash the master password
+def hashPW(input):
+    hash = hashlib.sha512(input)
+    hash = hash.hexdigest()
+
+    return hash
+
+# Function to display the screen to set master password (Sign Up)
+def displaySignUpScreen():
+
+    window.geometry("350x200")
 
 
     lbl1 = Label(window, text="Create master password ")
@@ -31,16 +52,26 @@ def displayFirstScreen():
 
     # Function to save the master password
     def SetMasterPassword():
+
         if txt1.get() == txt2.get():
-            pass
+            # The hashed password is UTF-8 encoded
+            hashedPW = hashPW(txt1.get().encode())
+            insertMasterPW = """INSERT INTO MasterPW(pw)
+            VALUES(?) """
+            cursor.execute(insertMasterPW, [(hashedPW)])
+            db.commit()
+
+            displayPasswordVault()
         else:
             lbl3.config(text="Passwords do not match!")
+
 
     btn = Button(window, text="Submit", command=SetMasterPassword)
     btn.pack(pady=10)
 
 # Function to display Login Screen
 def displayLoginScreen():
+
     window.geometry("300x200")
 
     lbl1 = Label(window,text="PASSWRLD")
@@ -57,11 +88,19 @@ def displayLoginScreen():
     lbl3 = Label(window)
     lbl3.pack()
 
+    def getMasterPW():
+        checkHashedPW = hashPW(txt.get().encode())
+        cursor.execute("SELECT * FROM MasterPW where id = 1 AND pw = ?", [(checkHashedPW)])
+        # print(checkHashedPW)
+        return cursor.fetchall()
+
     # Function to check master password
     def checkPassword():
-        password = "test"
+        match = getMasterPW()
 
-        if password==txt.get():
+        # print(match)
+
+        if match:
             displayPasswordVault()
         else:
             lbl3.config(text="Incorrect Password!")
@@ -72,6 +111,7 @@ def displayLoginScreen():
 
 # Function to display password vault
 def displayPasswordVault():
+
     for widget in window.winfo_children():
         widget.destroy()
     window.geometry("600x400")
@@ -80,6 +120,11 @@ def displayPasswordVault():
     lbl1.config(anchor=CENTER)
     lbl1.pack()
 
-displayFirstScreen()
-displayLoginScreen()
+cursor.execute("SELECT * FROM MasterPW")
+
+# Displays login screen if there is a value in MasterPW if not displays the sign up screen
+if cursor.fetchall():
+    displayLoginScreen()
+else:
+    displaySignUpScreen()
 window.mainloop()
