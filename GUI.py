@@ -81,7 +81,7 @@ def displaySignUpScreen():
     def SetMasterPassword():
 
         if txt1.get() == txt2.get():
-            sql = "DELETE FROM master_password WHERE id = 1"
+            sql = "DELETE FROM MasterPW WHERE id = 1"
 
             cursor.execute(sql)
 
@@ -158,7 +158,7 @@ def resetScreen():
 
     def getRecovKey():
         recovKeyCheck = hashPW(str(txt.get()).encode('utf-8'))
-        cursor.execute('SELECT * FROM master_password WHERE id = 1 AND recovkey = ?', [(recovKeyCheck)])
+        cursor.execute('SELECT * FROM MasterPW WHERE id = 1 AND recovkey = ?', [(recovKeyCheck)])
         return cursor.fetchall()
 
     def checkRecovKey():
