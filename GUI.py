@@ -1,5 +1,8 @@
-import sqlite3,hashlib
+import sqlite3
+import hashlib
 from tkinter import *
+from tkinter import simpledialog
+from functools import partial
 
 # Initiate database
 with sqlite3.connect("PASSWRLD.db") as db:
@@ -12,6 +15,21 @@ id INTEGER PRIMARY KEY,
 pw TEXT NOT NULL
 ) 
 """)
+
+# Creates the table to store the user data
+cursor.execute("""
+CREATE TABLE IF NOT EXISTS PWVault(
+id INTEGER PRIMARY KEY,
+username TEXT NOT NULL,
+password TEXT NOT NULL,
+description TEXT NOT NULL
+) 
+""")
+
+# Function to display windows to get user input
+def displayPopUp(text):
+    answer = simpledialog.askstring("", text)
+    return answer
 
 # Initiate Window
 window = Tk()
@@ -87,6 +105,7 @@ def displayLoginScreen():
     lbl3 = Label(window)
     lbl3.pack()
 
+    # Function to get hashed master password
     def getMasterPW():
         checkHashedPW = hashPW(txt.get().encode())
         cursor.execute("SELECT * FROM MasterPW where id = 1 AND pw = ?", [(checkHashedPW)])
@@ -113,11 +132,69 @@ def displayPasswordVault():
 
     for widget in window.winfo_children():
         widget.destroy()
-    window.geometry("600x400")
+
+    def addEntry():
+        text1 = "Username"
+        text2 = "Password"
+        text3 = "Description"
+
+        # window.withdraw()
+
+        username = displayPopUp(text1)
+        password = displayPopUp(text2)
+        description = displayPopUp(text3)
+
+        insertFields = """INSERT INTO PWVault(username, password, description)
+        VALUES(?, ?, ?)"""
+
+        cursor.execute(insertFields, (username, password, description))
+        db.commit()
+        displayPasswordVault()
+
+    def removeEntry(input):
+        cursor.execute("DELETE FROM PWVault WHERE id = ?", (input,))
+        db.commit()
+
+        displayPasswordVault()
+
+    window.geometry("725x500")
+
 
     lbl1 = Label(window, text="PASSWRLD")
-    lbl1.config(anchor=CENTER)
-    lbl1.pack()
+    lbl1.grid(column=1)
+
+    btn = Button(window, text="Add Entry", command=addEntry)
+    btn.grid(column=1, pady=10)
+
+    lbl = Label(window, text="Username")
+    lbl.grid(row=2, column=0, padx=80)
+    lbl = Label(window, text="Password")
+    lbl.grid(row=2, column=1, padx=80)
+    lbl = Label(window, text="Description")
+    lbl.grid(row=2, column=2, padx=80)
+
+    cursor.execute("SELECT * FROM PWVault")
+    if(cursor.fetchall() != None):
+        i=0
+        while True:
+            cursor.execute("SELECT * FROM PWVault")
+            array = cursor.fetchall()
+
+            lbl1 = Label(window, text=(array[i][1]))
+            lbl1.grid(column=0, row=i+3)
+            lbl1 = Label(window, text=(array[i][2]))
+            lbl1.grid(column=1, row=i+3)
+            lbl1 = Label(window, text=(array[i][3]))
+            lbl1.grid(column=2, row=i+3)
+
+            btn = Button(window, text="Delete", command=partial(removeEntry, array[i][0]))
+            btn.grid(column=3, row=i+3, pady=10)
+
+            i = i+1
+
+            cursor.execute("SELECT * FROM PWVault")
+            if (len(cursor.fetchall()) <= i):
+                break
 
 cursor.execute("SELECT * FROM MasterPW")
 
