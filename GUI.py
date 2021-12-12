@@ -80,6 +80,11 @@ def displaySignUpScreen():
     def SetMasterPassword():
 
         if txt1.get() == txt2.get():
+
+            sql = "DELETE FROM MasterPW WHERE id = 1"
+            cursor.execute(sql)
+            key = str(uuid.uuid4().hex) 
+
             # The hashed password is UTF-8 encoded
             hashedPW = hashPW(txt1.get().encode())
             insertMasterPW = """INSERT INTO MasterPW(pw)
