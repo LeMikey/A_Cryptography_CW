@@ -3,6 +3,14 @@ import hashlib
 from tkinter import *
 from tkinter import simpledialog
 from functools import partial
+import uuid
+import pyperclip
+import base64
+import os
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
+from cryptography.hazmat.backends import default_backend
+from cryptography.fernet import Fernet
 
 # Initiate database
 with sqlite3.connect("PASSWRLD.db") as db:
@@ -12,8 +20,8 @@ with sqlite3.connect("PASSWRLD.db") as db:
 cursor.execute("""
 CREATE TABLE IF NOT EXISTS MasterPW(
 id INTEGER PRIMARY KEY,
-pw TEXT NOT NULL
-) 
+pw TEXT NOT NULL,
+recovKey TEXT NOT NULL); 
 """)
 
 # Creates the table to store the user data
@@ -45,6 +53,8 @@ def hashPW(input):
 
 # Function to display the screen to set master password (Sign Up)
 def displaySignUpScreen():
+    for widget in window.winfo_children():
+        widget.destroy()
 
     window.geometry("350x200")
 
@@ -71,14 +81,21 @@ def displaySignUpScreen():
     def SetMasterPassword():
 
         if txt1.get() == txt2.get():
+            sql = "DELETE FROM master_password WHERE id = 1"
+
+            cursor.execute(sql)
+
             # The hashed password is UTF-8 encoded
             hashedPW = hashPW(txt1.get().encode())
-            insertMasterPW = """INSERT INTO MasterPW(pw)
-            VALUES(?) """
-            cursor.execute(insertMasterPW, [(hashedPW)])
+            key = str(uuid.uuid().hex)
+
+            recovKey = hashedPW(key.encode('utf-8'))
+            insertMasterPW = """INSERT INTO MasterPW(pw, recov_Key)
+            VALUES(?, ?) """
+            cursor.execute(insertMasterPW, ((hashedPW), (recovKey)))
             db.commit()
 
-            displayPasswordVault()
+            recovScreen(key)
         else:
             lbl3.config(text="Passwords do not match!")
 
@@ -86,8 +103,82 @@ def displaySignUpScreen():
     btn = Button(window, text="Submit", command=SetMasterPassword)
     btn.pack(pady=10)
 
+def recovScreen(key):
+    for widget in window.winfo_children():
+        widget.destroy()
+    
+    window.geometry("350x200")
+
+
+    lbl1 = Label(window, text="Save this key to recovery account")
+    lbl1.config(anchor=CENTER)
+    lbl1.pack()
+
+    lbl2 = Label(window, text=key)
+    lbl2.config(anchor=CENTER)
+    lbl2.pack()
+
+    lbl3 = Label(window)
+    lbl3.pack()
+
+    def copyKey():
+        pyperclip.copy(lbl2.cget("text"))
+
+    btn = Button(window, text="Copy Key", command=copyKey)
+    btn.pack(pady=10)
+
+    def done():
+        displayPasswordVault()
+
+    btn = Button(window, text="Done", command=done)
+    btn.pack(pady=10)
+
+#Function to display Reset Screen
+def resetScreen():
+    for widget in window.winfo_children():
+        widget.destroy()
+    
+    window.geometry("350x200")
+
+
+    lbl1 = Label(window, text="Enter recovery key")
+    lbl1.config(anchor=CENTER)
+    lbl1.pack()
+
+    txt = Entry(window, width=20)
+    txt.pack()
+    txt.focus()
+
+    lbl2 = Label(window)
+    lbl2.config(anchor=CENTER)
+    lbl2.pack()
+
+    lbl3 = Label(window)
+    lbl3.pack()
+
+    def getRecovKey():
+        recovKeyCheck = hashPW(str(txt.get()).encode('utf-8'))
+        cursor.execute('SELECT * FROM master_password WHERE id = 1 AND recovkey = ?', [(recovKeyCheck)])
+        return cursor.fetchall()
+
+    def checkRecovKey():
+        checked = getRecovKey()
+
+        if checked:
+            displaySignUpScreen()
+
+        else:
+            txt.delete(0, 'end')
+            lbl2.config(text = 'Wrong Key')
+
+    btn = Button(window, text="Check key", command=checkRecovKey)
+    btn.pack(pady=10)
+
+
 # Function to display Login Screen
 def displayLoginScreen():
+    for widget in window.winfo_children():
+        widget.destroy()
 
     window.geometry("300x200")
 
@@ -124,7 +215,13 @@ def displayLoginScreen():
             lbl3.config(text="Incorrect Password!")
             txt.delete(0, 'end')
 
+    def resetPass():
+        resetPass()
+
     btn = Button(window, text="Submit",command=checkPassword)
+    btn.pack(pady=10)
+
+    btn = Button(window, text="Reset Password",command=resetPass)
     btn.pack(pady=10)
 
 # Function to display password vault
