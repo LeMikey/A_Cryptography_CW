@@ -24,13 +24,16 @@ kdf = PBKDF2HMAC(
 
 encryptionKey = 0
 
+
 # Function to encrypt data
 def encrypt(message: bytes, key: bytes) -> bytes:
     return Fernet(key).encrypt(message)
 
+
 # Function to decrypt data
 def decrypt(message: bytes, token: bytes) -> bytes:
     return Fernet(token).decrypt(message)
+
 
 # Initiate database
 with sqlite3.connect("PASSWRLD.db") as db:
@@ -58,15 +61,18 @@ description TEXT NOT NULL
 ) 
 """)
 
+
 # Function to display windows to get user input
 def displayPopUp(text):
     answer = simpledialog.askstring("", text)
     return answer
 
+
 # Initiate Window
 window = Tk()
 
 window.title("PASSWRLD")
+
 
 # Function to implement sha512 hashing algorithm to hash the master password
 def hashPW(input):
@@ -74,13 +80,13 @@ def hashPW(input):
     hash = hash.hexdigest()
     return hash
 
+
 # Function to display the screen to set master password (Sign Up)
 def displaySignUpScreen():
     for widget in window.winfo_children():
         widget.destroy()
 
     window.geometry("350x200")
-
 
     lbl1 = Label(window, text="Create master password ")
     lbl1.config(anchor=CENTER)
@@ -126,9 +132,9 @@ def displaySignUpScreen():
         else:
             lbl3.config(text="Passwords do not match!")
 
-
     btn = Button(window, text="Submit", command=SetMasterPassword)
     btn.pack(pady=10)
+
 
 # Function to display Recovery Key window
 def displayRecoveryKey(key):
@@ -159,6 +165,7 @@ def displayRecoveryKey(key):
 
     btn = Button(window, text="Done", command=done)
     btn.pack(pady=10)
+
 
 # Function display window to reset master password
 def displayResetScreen():
@@ -197,6 +204,7 @@ def displayResetScreen():
 
     btn = Button(window, text="Check Key", command=checkRecoveryKey)
     btn.pack(pady=10)
+
 
 # Function to display Login Screen
 def displayLoginScreen():
@@ -249,6 +257,7 @@ def displayLoginScreen():
     btn = Button(window, text="Reset Password", command=resetPassword)
     btn.pack(pady=10)
 
+
 # Function to display password vault
 def displayPasswordVault():
     for widget in window.winfo_children():
@@ -283,7 +292,6 @@ def displayPasswordVault():
         displayPasswordVault()
 
     window.geometry("725x500")
-
 
     lbl1 = Label(window, text="PASSWRLD")
     lbl1.grid(column=1)
@@ -323,6 +331,7 @@ def displayPasswordVault():
             cursor.execute("SELECT * FROM PWVault")
             if len(cursor.fetchall()) <= i:
                 break
+
 
 cursor.execute("SELECT * FROM MasterPW")
 
