@@ -87,9 +87,9 @@ def displaySignUpScreen():
 
             # The hashed password is UTF-8 encoded
             hashedPW = hashPW(txt1.get().encode())
-            key = str(uuid.uuid().hex)
+            key = str(uuid.uuid4().hex)
 
-            recovKey = hashedPW(key.encode('utf-8'))
+            recovKey = hashPW(key.encode())
             insertMasterPW = """INSERT INTO MasterPW(pw, recov_Key)
             VALUES(?, ?) """
             cursor.execute(insertMasterPW, ((hashedPW), (recovKey)))
