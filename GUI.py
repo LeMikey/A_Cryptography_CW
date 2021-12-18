@@ -18,11 +18,11 @@ kdf = PBKDF2HMAC(
     algorithm=hashes.SHA512(),
     length=32,
     salt=salt,
-    iterations=300000,
+    iterations=100000,
     backend=backend
 )
 
-encryptionKey = 0
+encryptionKey = bytes(0)
 
 
 # Function to encrypt data
@@ -48,7 +48,7 @@ CREATE TABLE IF NOT EXISTS MasterPW(
 id INTEGER PRIMARY KEY,
 pw TEXT NOT NULL,
 recoveryKey TEXT NOT NULL
-)
+);
 """)
 
 # Creates the table to store the user data
@@ -58,7 +58,7 @@ id INTEGER PRIMARY KEY,
 username TEXT NOT NULL,
 password TEXT NOT NULL,
 description TEXT NOT NULL
-) 
+); 
 """)
 
 
@@ -70,9 +70,9 @@ def displayPopUp(text):
 
 # Initiate Window
 window = Tk()
+window.update()
 
 window.title("PASSWRLD")
-
 
 # Function to implement sha512 hashing algorithm to hash the master password
 def hashPW(input):
@@ -115,9 +115,10 @@ def displaySignUpScreen():
             cursor.execute(sql)
 
             # The hashed password is UTF-8 encoded
-            hashedPW = hashPW(txt1.get().encode())
+            hashedPW = hashPW(txt1.get().encode('utf-8'))
+            # Generates random key
             key = str(uuid.uuid4().hex)
-            recoveryKey = hashPW(key.encode())
+            recoveryKey = hashPW(key.encode('utf-8'))
 
             # Saves encryption key
             global encryptionKey
@@ -174,7 +175,6 @@ def displayResetScreen():
 
     window.geometry("350x200")
 
-
     lbl1 = Label(window, text="Enter Recovery Key")
     lbl1.config(anchor=CENTER)
     lbl1.pack()
@@ -189,13 +189,14 @@ def displayResetScreen():
 
     # Function to return if the entered recovery key is valid
     def getRecoveryKey():
-        recoveryKeyCheck = hashPW(str(txt.get()).encode())
+        recoveryKeyCheck = hashPW(str(txt.get()).encode('utf-8'))
         cursor.execute('SELECT * FROM MasterPW WHERE id = 1 AND recoveryKey = ?', [(recoveryKeyCheck)])
         return cursor.fetchall()
 
     # Function to check if recovery key is correct
     def checkRecoveryKey():
         checked = getRecoveryKey()
+
         if checked:
             displaySignUpScreen()
         else:
@@ -231,7 +232,7 @@ def displayLoginScreen():
     def getMasterPW():
         checkHashedPW = hashPW(txt.get().encode())
         global encryptionKey
-        encryptionKey = base64.urlsafe_b64encode(kdf.derive(txt.get().encode()))
+        encryptionKey = base64.urlsafe_b64encode(kdf.derive(txt.get().encode('utf-8')))
         cursor.execute("SELECT * FROM MasterPW where id = 1 AND pw = ?", [(checkHashedPW)])
         # print(checkHashedPW)
         return cursor.fetchall()
@@ -273,7 +274,6 @@ def displayPasswordVault():
 
         # Data stored will be encrypted
         username = encrypt(displayPopUp(text1).encode(), encryptionKey)
-        # print(username)
         password = encrypt(displayPopUp(text2).encode(), encryptionKey)
         description = encrypt(displayPopUp(text3).encode(), encryptionKey)
 
@@ -284,6 +284,20 @@ def displayPasswordVault():
         db.commit()
         displayPasswordVault()
 
+    # Function to update entry details
+    def updateEntry(input):
+        updateUsername = "Enter new username"
+        username = encrypt(displayPopUp(updateUsername).encode(), encryptionKey)
+
+        updatePassword = "Enter new password"
+        password = encrypt(displayPopUp(updatePassword).encode(), encryptionKey)
+
+        cursor.execute("UPDATE PWVault SET username = ? WHERE id = ?", (username, input,))
+        db.commit()
+        cursor.execute("UPDATE PWVault SET password = ? WHERE id = ?", (password, input,))
+        db.commit()
+        displayPasswordVault()
+
     # Function to remove an entry from password vault
     def removeEntry(input):
         cursor.execute("DELETE FROM PWVault WHERE id = ?", (input,))
@@ -291,13 +305,18 @@ def displayPasswordVault():
 
         displayPasswordVault()
 
-    window.geometry("725x500")
+    # Function to copy data into clipboard
+    def copyData(input):
+        window.clipboard_clear()
+        window.clipboard_append(input)
+
+    window.geometry("1000x500")
 
     lbl1 = Label(window, text="PASSWRLD")
-    lbl1.grid(column=1)
+    lbl1.grid(column=2)
 
     btn = Button(window, text="Add Entry", command=addEntry)
-    btn.grid(column=1, pady=10)
+    btn.grid(column=2, pady=10)
 
     lbl = Label(window, text="Username")
     lbl.grid(row=2, column=0, padx=80)
@@ -313,7 +332,7 @@ def displayPasswordVault():
             cursor.execute("SELECT * FROM PWVault")
             array = cursor.fetchall()
 
-            if len(array)==0:
+            if len(array) == 0:
                 break
 
             lbl1 = Label(window, text=decrypt(array[i][1], encryptionKey))
@@ -323,9 +342,19 @@ def displayPasswordVault():
             lbl1 = Label(window, text=decrypt(array[i][3], encryptionKey))
             lbl1.grid(column=2, row=i+3)
 
-            btn = Button(window, text="Delete", command=partial(removeEntry, array[i][0]))
-            btn.grid(column=3, row=i+3, pady=10)
+            btn1 = Button(window, text="Update", command=partial(updateEntry, array[i][0]))
+            btn1.grid(column=3, row=i + 3, pady=10)
 
+            username = decrypt(array[i][1], encryptionKey)
+            btn2 = Button(window, text="Copy Username", command=partial(copyData, username))
+            btn2.grid(column=4, row=i + 3, pady=10)
+
+            password = decrypt(array[i][2], encryptionKey)
+            btn3 = Button(window, text="Copy Password", command=partial(copyData, password))
+            btn3.grid(column=5, row=i + 3, pady=10)
+
+            btn = Button(window, text="Delete", command=partial(removeEntry, array[i][0]))
+            btn.grid(column=6, row=i+3, pady=10)
             i = i+1
 
             cursor.execute("SELECT * FROM PWVault")
