@@ -74,6 +74,7 @@ window.update()
 
 window.title("PASSWRLD")
 
+
 # Function to implement sha512 hashing algorithm to hash the master password
 def hashPW(input):
     hash = hashlib.sha512(input)
@@ -143,7 +144,6 @@ def displayRecoveryKey(key):
         widget.destroy()
 
     window.geometry("350x200")
-
 
     lbl1 = Label(window, text="Copy Recovery Key")
     lbl1.config(anchor=CENTER)
