@@ -14,6 +14,7 @@ from cryptography.fernet import Fernet
 backend = default_backend()
 salt = b'9909'
 
+# Key derivation function - Derives one or more secondary keys for one master key
 kdf = PBKDF2HMAC(
     algorithm=hashes.SHA512(),
     length=32,
@@ -22,6 +23,7 @@ kdf = PBKDF2HMAC(
     backend=backend
 )
 
+# Initialise 'encryptionKey' variable
 encryptionKey = bytes(0)
 
 
@@ -75,7 +77,7 @@ window.update()
 window.title("PASSWRLD")
 
 
-# Function to implement sha512 hashing algorithm to hash the master password
+# Function to implement sha512 hashing algorithm
 def hashPW(input):
     hash = hashlib.sha512(input)
     hash = hash.hexdigest()
@@ -107,7 +109,7 @@ def displaySignUpScreen():
     lbl3 = Label(window)
     lbl3.pack()
 
-    # Function to save the master password
+    # Function to check & save the master password
     def SetMasterPassword():
 
         if txt1.get() == txt2.get():
@@ -117,7 +119,7 @@ def displaySignUpScreen():
 
             # The hashed password is UTF-8 encoded
             hashedPW = hashPW(txt1.get().encode('utf-8'))
-            # Generates random key
+            # Generates a random key
             key = str(uuid.uuid4().hex)
             recoveryKey = hashPW(key.encode('utf-8'))
 
@@ -160,11 +162,7 @@ def displayRecoveryKey(key):
     btn = Button(window, text="Copy Key", command=copyKey)
     btn.pack(pady=10)
 
-    # Function to close Recovery Key Window
-    def done():
-        displayPasswordVault()
-
-    btn = Button(window, text="Done", command=done)
+    btn = Button(window, text="Done", command=displayPasswordVault)
     btn.pack(pady=10)
 
 
