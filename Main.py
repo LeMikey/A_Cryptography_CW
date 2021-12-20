@@ -11,6 +11,8 @@ from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 from cryptography.hazmat.backends import default_backend
 from cryptography.fernet import Fernet
 
+# Github repository link: https://github.com/nickjayesh/A_Cryptography_CW.git
+
 backend = default_backend()
 salt = b'9909'
 
