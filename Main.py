@@ -3,6 +3,8 @@ import hashlib
 from tkinter import *
 from tkinter import simpledialog
 from functools import partial
+import uuid
+import pyperclip
 import base64
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
@@ -12,6 +14,8 @@ from cryptography.fernet import Fernet
 backend = default_backend()
 salt = b'9909'
 
+# Key derivation function - Derives one or more secondary keys for one master key
+# Referred from: https://pycryptodome.readthedocs.io/en/latest/src/protocol/kdf.html
 kdf = PBKDF2HMAC(
     algorithm=hashes.SHA512(),
     length=32,
@@ -20,6 +24,7 @@ kdf = PBKDF2HMAC(
     backend=backend
 )
 
+# Initialise 'encryptionKey' variable
 encryptionKey = bytes(0)
 
 
@@ -34,6 +39,7 @@ def decrypt(message: bytes, token: bytes) -> bytes:
 
 
 # Initiate database
+# Referred from: https://docs.python.org/3/library/sqlite3.html
 with sqlite3.connect("PASSWRLD.db") as db:
     cursor = db.cursor()
 
@@ -44,7 +50,8 @@ with sqlite3.connect("PASSWRLD.db") as db:
 cursor.execute("""
 CREATE TABLE IF NOT EXISTS MasterPW(
 id INTEGER PRIMARY KEY,
-pw TEXT NOT NULL
+pw TEXT NOT NULL,
+recoveryKey TEXT NOT NULL
 );
 """)
 
@@ -72,7 +79,7 @@ window.update()
 window.title("PASSWRLD")
 
 
-# Function to implement sha512 hashing algorithm to hash the master password
+# Function to implement sha512 hashing algorithm
 def hashPW(input):
     hash = hashlib.sha512(input)
     hash = hash.hexdigest()
@@ -104,30 +111,100 @@ def displaySignUpScreen():
     lbl3 = Label(window)
     lbl3.pack()
 
-    # Function to save the master password
+    # Function to check & save the master password
     def SetMasterPassword():
 
         if txt1.get() == txt2.get():
 
+            sql = "DELETE FROM MasterPW WHERE id = 1"
+            cursor.execute(sql)
+
             # The hashed password is UTF-8 encoded
             hashedPW = hashPW(txt1.get().encode('utf-8'))
+            # Generates a random key
+            key = str(uuid.uuid4().hex)
+            recoveryKey = hashPW(key.encode('utf-8'))
 
             # Saves encryption key
             global encryptionKey
             encryptionKey = base64.urlsafe_b64encode(kdf.derive(txt1.get().encode()))
 
-            insertMasterPW = """INSERT INTO MasterPW(pw)
-            VALUES(?) """
-            cursor.execute(insertMasterPW, [hashedPW])
+            insertMasterPW = """INSERT INTO MasterPW(pw, recoveryKey)
+            VALUES(?, ?) """
+            cursor.execute(insertMasterPW, ((hashedPW), (recoveryKey)))
             db.commit()
-            displayPasswordVault()
 
+            displayRecoveryKey(key)
         else:
             lbl3.config(text="Passwords do not match!")
 
     btn = Button(window, text="Submit", command=SetMasterPassword)
     btn.pack(pady=10)
 
+
+# Function to display Recovery Key window
+def displayRecoveryKey(key):
+    for widget in window.winfo_children():
+        widget.destroy()
+
+    window.geometry("350x200")
+
+    lbl1 = Label(window, text="Copy Recovery Key")
+    lbl1.config(anchor=CENTER)
+    lbl1.pack()
+
+    lbl2 = Label(window, text=key)
+    lbl2.config(anchor=CENTER)
+    lbl2.pack()
+
+    # Function to copy the Recovery Key to clipboard
+    def copyKey():
+        pyperclip.copy(lbl2.cget("text"))
+
+    btn = Button(window, text="Copy Key", command=copyKey)
+    btn.pack(pady=10)
+
+    btn = Button(window, text="Done", command=displayPasswordVault)
+    btn.pack(pady=10)
+
+
+# Function display window to reset master password
+def displayResetScreen():
+    for widget in window.winfo_children():
+        widget.destroy()
+
+    window.geometry("350x200")
+
+    lbl1 = Label(window, text="Enter Recovery Key")
+    lbl1.config(anchor=CENTER)
+    lbl1.pack()
+
+    txt = Entry(window, width=20)
+    txt.pack()
+    txt.focus()
+
+    lbl2 = Label(window)
+    lbl2.config(anchor=CENTER)
+    lbl2.pack()
+
+    # Function to return if the entered recovery key is valid
+    def getRecoveryKey():
+        recoveryKeyCheck = hashPW(str(txt.get()).encode('utf-8'))
+        cursor.execute('SELECT * FROM MasterPW WHERE id = 1 AND recoveryKey = ?', [(recoveryKeyCheck)])
+        return cursor.fetchall()
+
+    # Function to check if recovery key is correct
+    def checkRecoveryKey():
+        checked = getRecoveryKey()
+
+        if checked:
+            displaySignUpScreen()
+        else:
+            txt.delete(0, 'end')
+            lbl2.config(text='Wrong Key')
+
+    btn = Button(window, text="Check Key", command=checkRecoveryKey)
+    btn.pack(pady=10)
 
 
 # Function to display Login Screen
@@ -171,7 +248,14 @@ def displayLoginScreen():
             lbl3.config(text="Incorrect Password!")
             txt.delete(0, 'end')
 
+    # Function to display window to reset master password
+    def resetPassword():
+        displayResetScreen()
+
     btn = Button(window, text="Submit", command=checkPassword)
+    btn.pack(pady=10)
+
+    btn = Button(window, text="Reset Password", command=resetPassword)
     btn.pack(pady=10)
 
 
