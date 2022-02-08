@@ -31,6 +31,7 @@ encryptionKey = bytes(0)
 
 
 # Function to encrypt data
+# Referred from: https://cryptography.io/en/latest/fernet/
 def encrypt(message: bytes, key: bytes) -> bytes:
     return Fernet(key).encrypt(message)
 
@@ -84,6 +85,7 @@ window.title("PASSWRLD")
 # Function to implement sha512 hashing algorithm
 def hashPW(input):
     hash = hashlib.sha512(input)
+    # Converting to hexadecimal equivalent encoded string
     hash = hash.hexdigest()
     return hash
 
@@ -130,6 +132,7 @@ def displaySignUpScreen():
             # Saves encryption key
             global encryptionKey
             encryptionKey = base64.urlsafe_b64encode(kdf.derive(txt1.get().encode()))
+            # print(encryptionKey)
 
             insertMasterPW = """INSERT INTO MasterPW(pw, recoveryKey)
             VALUES(?, ?) """
@@ -329,7 +332,7 @@ def displayPasswordVault():
 
     cursor.execute("SELECT * FROM PWVault")
     if cursor.fetchall() is not None:
-        i=0
+        i = 0
         while True:
             cursor.execute("SELECT * FROM PWVault")
             array = cursor.fetchall()
@@ -372,3 +375,4 @@ if cursor.fetchall():
 else:
     displaySignUpScreen()
 window.mainloop()
+
